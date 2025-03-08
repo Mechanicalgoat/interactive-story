@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星への旅 - インタラクティブストーリー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2d3142;
+            --secondary-color: #4f5d75;
+            --accent-color: #5c9ead;
+            --text-color: #ffffff;
+            --highlight-color: #e3b23c;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            transition: background-color 2s ease;
+        }
+
+        #story-container {
+            width: 90%;
+            max-width: 800px;
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        #title-screen {
+            text-align: center;
+        }
+
+        #title-screen h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px rgba(92, 158, 173, 0.7);
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        #title-screen p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        #start-button {
+            padding: 0.8rem 2rem;
+            font-size: 1.2rem;
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        #start-button:hover {
+            background-color: var(--highlight-color);
+            transform: scale(1.05);
+        }
+
+        #story {
+            display: none;
+        }
+
+        #story-text {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            opacity: 0;
+        }
+
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            opacity: 0;
+        }
+
+        .choice-button {
+            padding: 1rem;
+            font-size: 1rem;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .choice-button:hover {
+            background-color: var(--accent-color);
+            transform: translateX(10px);
+        }
+
+        #restart-button {
+            margin-top: 2rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--highlight-color);
+            color: var(--primary-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            opacity: 0;
+            display: none;
+        }
+
+        #restart-button:hover {
+            background-color: #ccac62;
+        }
+
+        #background-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .achievement {
+            position: fixed;
+            bottom: 20px;
+            right: -300px;
+            background-color: var(--highlight-color);
+            color: var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #progress-bar {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            height: 10px;
+            background-color: var(--secondary-color);
+            border-radius: 5px;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+        #progress {
+            height: 100%;
+            width: 0%;
+            background-color: var(--accent-color);
+            transition: width 0.5s ease;
+        }
+
+        #share-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            opacity: 0;
+            z-index: 5;
+        }
+
+        #sound-toggle {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            padding: 5px 10px;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 5;
+            opacity: 0;
+        }
+
+        @media (max-width: 768px) {
+            #title-screen h1 {
+                font-size: 2.5rem;
+            }
+
+            #story-text {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+</head>
+<body>
+    <div id="background-elements"></div>
+    
+    <div id="progress-bar">
+        <div id="progress"></div>
+    </div>
+    
+    <button id="share-button">シェア</button>
+    <button id="sound-toggle">🔊</button>
+    
+    <div id="story-container">
+        <div id="title-screen">
+            <h1>星への旅</h1>
+            <p>あなたの選択が、物語を動かす</p>
+            <button id="start-button">冒険を始める</button>
+        </div>
+        
+        <div id="story">
+            <p id="story-text"></p>
+            <div id="choices"></div>
+            <button id="restart-button">もう一度始める</button>
+        </div>
+    </div>
+
+    <script>
+        // 物語のシナリオデータ
+        const story = {
+            start: {
+                text: "あなたは静かな夜道を歩いていた。突然、空から降り注ぐ流れ星を目にする。その中の一つが、近くの森に落ちていくのが見えた。",
+                choices: [
+                    { text: "流れ星が落ちた場所を探しに行く", next: "forest" },
+                    { text: "そのまま家に帰る", next: "home" }
+                ],
+                background: "night",
+                music: "intro"
+            },
+            forest: {
+                text: "好奇心に駆られ、あなたは森へと足を踏み入れた。暗い小道を進むと、木々の間から不思議な青い光が漏れている。",
+                choices: [
+                    { text: "光の方へ近づく", next: "light" },
+                    { text: "危険を感じ、引き返す", next: "retreat" }
+                ],
+                background: "forest",
+                music: "mystery"
+            },
+            light: {
+                text: "光に導かれるように進むと、小さな空き地に辿り着いた。そこには、きらめく青い石が落ちていた。手に取ると、突然、石から声が聞こえる。「助けてください...私たちの星に来てください」",
+                choices: [
+                    { text: "「どうすれば行けるの？」と問いかける", next: "communication" },
+                    { text: "驚いて石を落とす", next: "drop_stone" }
+                ],
+                background: "glow",
+                achievement: "探検家: 神秘の光を見つけた"
+            },
+            communication: {
+                text: "「その石を握りしめて、心の中で願ってください」と声は言った。あなたは石を強く握りしめ、目を閉じた。体が軽くなり、風に乗って浮かんでいくような感覚に包まれる。",
+                choices: [
+                    { text: "願いを込めて、石を握りしめる", next: "teleport" },
+                    { text: "最後の瞬間に怖くなり、やめる", next: "hesitate" }
+                ],
+                background: "sparkle"
+            },
+            teleport: {
+                text: "目を開けると、そこは見たこともない風景だった。紫色の空に二つの月が浮かび、周りには水晶のような建物が立ち並んでいる。あなたの前には、青い肌をした存在が立っていた。「よく来てくれました、旅人よ。我々の星は危機に瀕しています」",
+                choices: [
+                    { text: "「何があったの？」と尋ねる", next: "alien_story" },
+                    { text: "「私に何ができるの？」と尋ねる", next: "help_request" }
+                ],
+                background: "alien_world",
+                music: "space",
+                achievement: "星間旅行者: 異世界に到達"
+            },
+            alien_story: {
+                text: "「我々の星のエネルギー源である結晶が、闇の力に侵食されています。このままでは、我々の文明は滅びてしまう」と青い存在は悲しげに語った。「伝説によれば、他の世界からの純粋な心を持つ者だけが、この危機を救えるとされています」",
+                choices: [
+                    { text: "「私にできることなら、力になりたい」", next: "accept_mission" },
+                    { text: "「ごめん、これは私には無理だ」", next: "decline_mission" }
+                ],
+                background: "crystal"
+            },
+            accept_mission: {
+                text: "「ありがとう、勇敢な旅人よ」青い存在の目が希望に輝く。「では、中央神殿に向かいましょう。そこで結晶の浄化の儀式を行います」あなたは異世界の街を進み、壮大な神殿にたどり着いた。",
+                choices: [
+                    { text: "儀式に参加する", next: "ritual" },
+                    { text: "最後の瞬間に迷いが生じる", next: "doubt" }
+                ],
+                background: "temple",
+                music: "epic"
+            },
+            ritual: {
+                text: "神殿の中央には、かつては輝いていたであろう巨大な結晶が、今は暗く曇っている。「両手を結晶に当て、あなたの世界の記憶を思い浮かべてください」とガイドされる。あなたは深呼吸し、地球の美しい自然、愛する人々の顔を思い起こした。",
+                choices: [
+                    { text: "全身全霊で結晶に意識を集中する", next: "success" },
+                    { text: "途中で怖くなり、手を引っ込める", next: "partial_success" }
+                ],
+                background: "crystal_ceremony"
+            },
+            success: {
+                text: "あなたの手から結晶に光が広がり始めた。暗かった結晶が徐々に輝きを取り戻し、神殿全体が眩しいほどの光に包まれる。「成功しました！」喜びの声があがる中、あなたは力を使い果たし、意識が遠のいていく...",
+                choices: [
+                    { text: "目を閉じ、身を委ねる", next: "return_hero" }
+                ],
+                background: "bright_light",
+                music: "triumph",
+                achievement: "救世主: 異世界を救う"
+            },
+            return_hero: {
+                text: "目を覚ますと、あなたは森の中に戻っていた。手の中には小さな光る結晶のかけらが残されている。それは異世界との繋がりの証。空を見上げると、新しい星が輝いているように見えた。あなたの冒険は、これからも心の中で続いていく。",
+                choices: [
+                    { text: "おわり", next: "end" }
+                ],
+                background: "peaceful_forest",
+                music: "ending",
+                isEnding: true,
+                endingType: "true_ending"
+            },
+            home: {
+                text: "あなたは流れ星を見送り、家に帰ることにした。家に着くと、テレビのニュースで近くの森に何かが落下したと報じていた。「明日、見に行こうかな」と考えながら眠りについた。",
+                choices: [
+                    { text: "朝になったら森へ行く", next: "next_day" },
+                    { text: "忘れて普段通りの生活を送る", next: "normal_life" }
+                ],
+                background: "home",
+                music: "calm"
+            },
+            // 他の分岐シナリオも追加...
+            drop_stone: {
+                text: "驚いて石を落とすと、青い光は一瞬激しく輝き、そして消えた。「待って...」という声が風に消えていく。何かとても重要なものを逃してしまったような後悔が残る。",
+                choices: [
+                    { text: "もう一度石を探す", next: "search_again" },
+                    { text: "家に帰る", next: "go_home_scared" }
+                ],
+                background: "dim_forest"
+            },
+            retreat: {
+                text: "不気味な光に危険を感じ、あなたは森から出ることにした。帰り道、空を見上げると星が一瞬明るく瞬き、そして消えた。何か特別なものを見逃したような感覚が残る。",
+                choices: [
+                    { text: "家に帰る", next: "missed_chance" },
+                    { text: "やっぱり引き返す", next: "return_forest" }
+                ],
+                background: "night_exit",
+                music: "regret"
+            },
+            normal_life: {
+                text: "あなたは日常生活に戻り、流れ星のことは次第に忘れていった。時々、夜空を見上げると、どこか懐かしさを感じるが、その理由は分からない。平穏な日々が続く。",
+                choices: [
+                    { text: "おわり", next: "end" }
+                ],
+                background: "daily_life",
+                isEnding: true,
+                endingType: "normal_ending"
+            },
+            // イースターエッグ分岐
+            search_again: {
+                text: "慎重に周囲を探すと、石は見つからなかったが、代わりに小さな青い花が生えているのを見つけた。不思議なことに、その花は淡く光を放っている。",
+                choices: [
+                    { text: "花を摘む", next: "flower_portal" },
+                    { text: "花をそのままにして帰る", next: "leave_flower" }
+                ],
+                background: "glowing_flower",
+                achievement: "好奇心: 神秘の花を発見"
+            },
+            flower_portal: {
+                text: "花に触れた瞬間、まるで電流が走ったかのような感覚があり、周囲の風景が歪み始めた。気がつくと、あなたは星空の中に浮かんでいる。「別の方法を見つけたのね」という声が聞こえる。",
+                choices: [
+                    { text: "「ここはどこ？」と尋ねる", next: "space_between" },
+                    { text: "パニックになる", next: "panic_space" }
+                ],
+                background: "space_void",
+                music: "ethereal",
+                achievement: "発見者: 隠された道を見つけた"
+            },
+            space_between: {
+                text: "「ここは世界と世界の間。あなたは特別な存在だわ」透明な姿をした存在が現れる。「選ばれし者は少ない。あなたには宇宙の秘密を見せてあげましょう」",
+                choices: [
+                    { text: "秘密を知る", next: "cosmic_secret" }
+                ],
+                background: "cosmic",
+                music: "revelation"
+            },
+            cosmic_secret: {
+                text: "存在はあなたに宇宙の真理を語り始めた。すべての星、すべての世界が繋がっていること。そして時には、特別な魂がその境界を越えられること。「あなたはその一人。この知識を持ち帰りなさい」",
+                choices: [
+                    { text: "啓示を受け入れる", next: "enlightenment" }
+                ],
+                background: "universe",
+                achievement: "啓示: 宇宙の真理を知る"
+            },
+            enlightenment: {
+                text: "目が覚めると、あなたは森の中にいた。しかし、世界の見え方が変わっていた。木々の間に光の糸が見え、夜空の星々が語りかけてくるよう。この特別な視点は、あなただけのもの。",
+                choices: [
+                    { text: "おわり", next: "end" }
+                ],
+                background: "enlightened_forest",
+                music: "transcendence",
+                isEnding: true,
+                endingType: "secret_ending",
+                achievement: "覚醒者: 隠されたエンディングを発見"
+            },
+            end: {
+                text: "あなたの物語はここで終わります。しかし、他の選択肢を選べば、違う結末が待っているかもしれません。",
+                choices: [
+                    { text: "もう一度始める", next: "restart" }
+                ],
+                background: "stars",
+                music: "end"
+            }
+        };
+
+        // DOM要素
+        const titleScreen = document.getElementById('title-screen');
+        const storySection = document.getElementById('story');
+        const storyText = document.getElementById('story-text');
+        const choicesContainer = document.getElementById('choices');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const progressBar = document.getElementById('progress-bar');
+        const progress = document.getElementById('progress');
+        const shareButton = document.getElementById('share-button');
+        const soundToggle = document.getElementById('sound-toggle');
+        const backgroundElements = document.getElementById('background-elements');
+
+        // ゲーム状態
+        let currentScene = 'start';
+        let achievements = [];
+        let visitedScenes = {};
+        let soundEnabled = true;
+        let sounds = {};
+        let totalScenes = Object.keys(story).length;
+        let completedEndings = [];
+
+        // ローカルストレージから進行状況を読み込む
+        function loadProgress() {
+            const savedProgress = localStorage.getItem('storyProgress');
+            if (savedProgress) {
+                const data = JSON.parse(savedProgress);
+                achievements = data.achievements || [];
+                visitedScenes = data.visitedScenes || {};
+                completedEndings = data.completedEndings || [];
+                
+                // 進行状況の表示を更新
+                updateProgressDisplay();
+            }
+        }
+
+        // 進行状況を保存
+        function saveProgress() {
+            const data = {
+                achievements,
+                visitedScenes,
+                completedEndings
+            };
+            localStorage.setItem('storyProgress', JSON.stringify(data));
+            
+            // 進行状況の表示を更新
+            updateProgressDisplay();
+        }
+
+        // 進行状況表示の更新
+        function updateProgressDisplay() {
+            const visitedCount = Object.keys(visitedScenes).length;
+            const percentage = Math.min((visitedCount / totalScenes) * 100, 100);
+            progress.style.width = `${percentage}%`;
+        }
+
+        // 実績を表示
+        function showAchievement(text) {
+            if (!achievements.includes(text)) {
+                achievements.push(text);
+                saveProgress();
+                
+                const achievementElement = document.createElement('div');
+                achievementElement.className = 'achievement';
+                achievementElement.textContent = `達成: ${text}`;
+                document.body.appendChild(achievementElement);
+                
+                gsap.to(achievementElement, {
+                    right: '20px',
+                    duration: 0.5,
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        gsap.to(achievementElement, {
+                            right: '-300px',
+                            delay: 3,
+                            duration: 0.5,
+                            ease: 'power2.in',
+                            onComplete: () => {
+                                achievementElement.remove();
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        // 音楽と効果音の初期化
+        function initSounds() {
+            sounds = {
+                intro: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/intro.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                mystery: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/mystery.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                space: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/space.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                epic: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/epic.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                triumph: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/triumph.mp3'],
+                    loop: true,
+                    volume: 0.8
+                }),
+                ending: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/ending.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                calm: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/calm.mp3'],
+                    loop: true,
+                    volume: 0.6
+                }),
+                regret: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/regret.mp3'],
+                    loop: true,
+                    volume: 0.6
+                }),
+                ethereal: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/ethereal.mp3'],
+                    loop: true,
+                    volume: 0.6
+                }),
+                revelation: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/revelation.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                transcendence: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/transcendence.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                end: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/end.mp3'],
+                    loop: true,
+                    volume: 0.7
+                }),
+                click: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/click.mp3'],
+                    volume: 0.5
+                }),
+                achievement: new Howl({
+                    src: ['https://interactive-storytelling.s3.amazonaws.com/achievement.mp3'],
+                    volume: 0.7
+                })
+            };
+            
+            // 実際のファイルがない場合のフォールバック
+            // 実際の使用時には適切な音声ファイルをホスティングする必要があります
+            for (let key in sounds) {
+                sounds[key]._src = ['data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'];
+            }
+        }
+
+        // 音楽の再生
+        function playMusic(track) {
+            if (!soundEnabled) return;
+            
+            // 現在再生中の音楽を停止
+            for (let key in sounds) {
+                if (sounds[key].playing()) {
+                    sounds[key].stop();
+                }
+            }
+            
+            // 新しいトラックを再生
+            if (track && sounds[track]) {
+                sounds[track].play();
+            }
+        }
+
+        // 効果音の再生
+        function playSound(sound) {
+            if (!soundEnabled || !sounds[sound]) return;
+            sounds[sound].play();
+        }
+
+        // 背景アニメーションの設定
+        function setBackground(type) {
+            // 背景色の変更
+            let bgColor = '';
+            switch (type) {
+                case 'night':
+                    bgColor = '#0f1729';
+                    createStars();
+                    break;
+                case 'forest':
+                    bgColor = '#0a2a12';
+                    createForestParticles();
+                    break;
+                case 'glow':
+                    bgColor = '#103a4a';
+                    createGlowEffect();
+                    break;
+                case 'sparkle':
+                    bgColor = '#1a1a3a';
+                    createSparkleEffect();
+                    break;
+                case 'alien_world':
+                    bgColor = '#2a0a3a';
+                    createAlienWorldEffect();
+                    break;
+                case 'crystal':
+                    bgColor = '#0a2a3a';
+                    createCrystalEffect();
+                    break;
+                case 'temple':
+                    bgColor = '#2a2a4a';
+                    createTempleEffect();
+                    break;
+                case 'crystal_ceremony':
+                    bgColor = '#1a0a2a';
+                    createCeremonyEffect();
+                    break;
+                case 'bright_light':
+                    bgColor = '#ffffff';
+                    createLightBurstEffect();
+                    break;
+                case 'peaceful_forest':
+                    bgColor = '#1a3a2a';
+                    createPeacefulForestEffect();
+                    break;
+                case 'home':
+                    bgColor = '#2a2a2a';
+                    createHomeEffect();
+                    break;
+                case 'daily_life':
+                    bgColor = '#4a4a5a';
+                    createDailyLifeEffect();
+                    break;
+                case 'dim_forest':
+                    bgColor = '#1a2a1a';
+                    createDimForestEffect();
+                    break;
+                case 'night_exit':
+                    bgColor = '#0a0a1a';
+                    createNightSkyEffect();
+                    break;
+                case 'glowing_flower':
+                    bgColor = '#0a1a2a';
+                    createGlowingFlowerEffect();
+                    break;
+                case 'space_void':
+                    bgColor = '#000000';
+                    createSpaceVoidEffect();
+                    break;
+                case 'cosmic':
+                    bgColor = '#0a0a2a';
+                    createCosmicEffect();
+                    break;
+                case 'universe':
+                    bgColor = '#000000';
+                    createUniverseEffect();
+                    break;
+                case 'enlightened_forest':
+                    bgColor = '#1a2a3a';
+                    createEnlightenedForestEffect();
+                    break;
+                case 'stars':
+                    bgColor = '#000000';
+                    createStarfieldEffect();
+                    break;
+                default:
+                    bgColor = '#2d3142';
+                    break;
+            }
+            
+            gsap.to('body', {
+                backgroundColor: bgColor,
+                duration: 2
+            });
+        }
+
+        // 星のアニメーション
+        function createStars() {
+            clearBackgroundElements();
+            
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                const size = Math.random() * 3 + 1;
+                const posX = Math.random() * window.innerWidth;
+                const posY = Math.random() * window.innerHeight;
+                
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.left = `${posX}px`;
+                star.style.top = `${posY}px`;
+                
+                backgroundElements.appendChild(star);
+                
+                gsap.to(star, {
+                    opacity: Math.random() * 0.8 + 0.2,
+                    duration: 1,
+                    delay: Math.random() * 2
+                });
+                
+                // 星の明滅アニメーション
+                gsap.to(star, {
+                    opacity: 0.2,
+                    duration: 1 + Math.random() * 2,
+                    repeat: -1,
+                    yoyo: true,
+                    delay: Math.random() * 3
+                });
+            }
+        }
+
+        // 他の背景アニメーション関数
+        function createForestParticles() {
+            clearBackgroundElements();
+            // 森の背景パーティクル実装
+        }
+
+        function createGlowEffect() {
+            clearBackgroundElements();
+            // 光る効果の実装
+        }
+
+        // 他の背景効果も同様に実装...
+
+        // 背景要素のクリア
+        function clearBackgroundElements() {
+            backgroundElements.innerHTML = '';
+        }
+
+        // シェア機能
+        function shareStory() {
+            const shareText = `「星への旅」インタラクティブストーリーを体験しました！${achievements.length}個の実績を獲得！ #インタラクティブストーリー`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: '星への旅',
+                    text: shareText,
+                    url: window.location.href
+                }).catch(err => {
+                    console.error('共有に失敗しました:', err);
+                });
+            } else {
+                // クリップボードにコピー
+                navigator.clipboard.writeText(shareText + '\n' + window.location.href)
+                    .then(() => {
+                        alert('クリップボードにコピーしました！');
+                    })
+                    .catch(err => {
+                        console.error('クリップボードへのコピーに失敗しました:', err);
+                    });
+            }
+        }
+
+        // ゲームの初期化
+        function initGame() {
+            // 音の初期化
+            initSounds();
+            
+            // 進行状況のロード
+            loadProgress();
+            
+            // UIの表示
+            gsap.to(progressBar, { opacity: 1, duration: 1, delay: 0.5 });
+            gsap.to(shareButton, { opacity: 1, duration: 1, delay: 0.5 });
+            gsap.to(soundToggle, { opacity: 1, duration: 1, delay: 0.5 });
+            
+            // タイトル画面のアニメーション
+            gsap.to('#title-screen h1', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.2
+            });
+            
+            gsap.to('#title-screen p', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.5
+            });
+            
+            gsap.to('#start-button', {
+                opacity: 1,
+                duration: 1,
+                delay: 0.8
+            });
+            
+            // 星の背景を作成
+            createStars();
+            
+            // イントロ音楽を再生
+            playMusic('intro');
+        }
+
+        // シーンの表示
+        function showScene(sceneId) {
+            // シーンが存在しない場合
+            if (!story[sceneId]) {
+                console.error(`Scene not found: ${sceneId}`);
+                return;
+            }
+            
+            // 現在のシーンを更新
+            currentScene = sceneId;
+            
+            // 訪問したシーンを記録
+            if (!visitedScenes[sceneId]) {
+                visitedScenes[sceneId] = true;
+                saveProgress();
+            }
+            
+            const scene = story[sceneId];
+            
+            // 背景の設定
+            if (scene.background) {
+                setBackground(scene.background);
+            }
+            
+            // 音楽の再生
+            if (scene.music) {
+                playMusic(scene.music);
+            }
+            
+            // 実績の表示
+            if (scene.achievement && !achievements.includes(scene.achievement)) {
+                playSound('achievement');
+                showAchievement(scene.achievement);
+            }
+            
+            // エンディングの記録
+            if (scene.isEnding && scene.endingType && !completedEndings.includes(scene.endingType)) {
+                completedEndings.push(scene.endingType);
+                saveProgress();
+                showAchievement(`エンディング解放: ${scene.endingType === 'true_ending' ? '真のエンディング' : 
+                                scene.endingType === 'normal_ending' ? '通常エンディング' : '秘密のエンディング'}`);
+            }
+            
+            // テキストの表示
+            storyText.textContent = scene.text;
+            choicesContainer.innerHTML = '';
+            
+            // 選択肢の作成
+            scene.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.className = 'choice-button';
+                button.textContent = choice.text;
+                
+                button.addEventListener('click', () => {
+                    playSound('click');
+                    
+                    if (choice.next === 'restart') {
+                        // ゲームのリスタート
+                        showTitleScreen();
+                    } else {
+                        // 次のシーンを表示
+                        showScene(choice.next);
+                    }
+                });
+                
+                choicesContainer.appendChild(button);
+            });
+            
+            // リスタートボタンの表示/非表示
+            if (scene.isEnding) {
+                restartButton.style.display = 'block';
+                gsap.to(restartButton, { opacity: 1, duration: 0.5 });
+            } else {
+                restartButton.style.display = 'none';
+                gsap.to(restartButton, { opacity: 0, duration: 0.5 });
+            }
+            
+            // アニメーション
+            gsap.fromTo(storyText, 
+                { opacity: 0, y: -10 },
+                { opacity: 1, y: 0, duration: 0.5 }
+            );
+            
+            gsap.fromTo(choicesContainer, 
+                { opacity: 0, y: 10 },
+                { opacity: 1, y: 0, duration: 0.5, delay: 0.3 }
+            );
+        }
+
+        // タイトル画面の表示
+        function showTitleScreen() {
+            titleScreen.style.display = 'block';
+            storySection.style.display = 'none';
+            
+            gsap.to('#title-screen h1', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.2
+            });
+            
+            gsap.to('#title-screen p', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.5
+            });
+            
+            gsap.to('#start-button', {
+                opacity: 1,
+                duration: 1,
+                delay: 0.8
+            });
+            
+            // イントロ音楽を再生
+            playMusic('intro');
+            
+            // 星の背景を作成
+            createStars();
+        }
+
+        // イベントリスナー
+        startButton.addEventListener('click', () => {
+            playSound('click');
+            
+            titleScreen.style.display = 'none';
+            storySection.style.display = 'block';
+            
+            // ストーリーを開始
+            showScene('start');
+        });
+        
+        restartButton.addEventListener('click', () => {
+            playSound('click');
+            showTitleScreen();
+        });
+        
+        shareButton.addEventListener('click', () => {
+            playSound('click');
+            shareStory();
+        });
+        
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            
+            if (soundEnabled) {
+                // 現在のシーンの音楽を再生
+                const scene = story[currentScene];
+                if (scene && scene.music) {
+                    playMusic(scene.music);
+                }
+            } else {
+                // すべての音を停止
+                for (let key in sounds) {
+                    if (sounds[key].playing()) {
+                        sounds[key].stop();
+                    }
+                }
+            }
+        });
+        
+        // ゲームの初期化と開始
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
